@@ -170,6 +170,7 @@ rb_grn_patricia_trie_s_create (int argc, VALUE *argv, VALUE klass)
     VALUE rb_value_type;
     VALUE rb_default_tokenizer, rb_sub_records;
     VALUE rb_normalizer;
+    VALUE rb_token_filters;
 
     rb_scan_args(argc, argv, "01", &options);
 
@@ -185,6 +186,7 @@ rb_grn_patricia_trie_s_create (int argc, VALUE *argv, VALUE klass)
                         "default_tokenizer", &rb_default_tokenizer,
                         "sub_records", &rb_sub_records,
                         "normalizer", &rb_normalizer,
+                        "token_filters", &rb_token_filters,
                         NULL);
 
     context = rb_grn_context_ensure(&rb_context);
@@ -233,6 +235,9 @@ rb_grn_patricia_trie_s_create (int argc, VALUE *argv, VALUE klass)
     if (!NIL_P(rb_normalizer))
         rb_funcall(rb_table, rb_intern("normalizer="), 1,
                    rb_normalizer);
+    if (!NIL_P(rb_token_filters))
+        rb_funcall(rb_table, rb_intern("token_filters="), 1,
+                   rb_token_filters);
 
     if (rb_block_given_p())
         return rb_ensure(rb_yield, rb_table, rb_grn_object_close, rb_table);

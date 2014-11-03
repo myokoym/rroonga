@@ -1,7 +1,7 @@
 /* -*- coding: utf-8; mode: C; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
 /*
-  Copyright (C) 2014  Masafumi Yokoyama <myokoym@gmail.com>
   Copyright (C) 2009-2013  Kouhei Sutou <kou@clear-code.com>
+  Copyright (C) 2014  Masafumi Yokoyama <myokoym@gmail.com>
 
   This library is free software; you can redistribute it and/or
   modify it under the terms of the GNU Lesser General Public
@@ -157,6 +157,37 @@ rb_grn_table_key_support_inspect_content (VALUE self, VALUE inspected)
         } else {
             rb_str_cat2(inspected, "(nil)");
         }
+    }
+
+    {
+        grn_obj token_filters;
+        int n_token_filters;
+
+        rb_str_cat2(inspected, ", ");
+        rb_str_cat2(inspected, "token_filters: ");
+        GRN_PTR_INIT(&token_filters, GRN_OBJ_VECTOR, GRN_ID_NIL);
+        grn_obj_get_info(context, table, GRN_INFO_TOKEN_FILTERS,
+                         &token_filters);
+        n_token_filters = GRN_BULK_VSIZE(&token_filters) / sizeof(grn_obj *);
+        if (n_token_filters > 0) {
+            rb_str_cat2(inspected, "<");
+            int i;
+            for (i = 0; i < n_token_filters; i++) {
+                grn_obj *token_filter = GRN_PTR_VALUE_AT(&token_filters, i);
+                char name[GRN_TABLE_MAX_KEY_SIZE];
+                int name_len;
+                if (i > 0) {
+                    rb_str_cat2(inspected, ",");
+                }
+                // TODO
+                name_len = grn_obj_name(context, token_filter, name, GRN_TABLE_MAX_KEY_SIZE);
+                rb_str_concat(inspected, rb_str_new(name, name_len));
+            }
+            rb_str_cat2(inspected, ">");
+        } else {
+            rb_str_cat2(inspected, "(nil)");
+        }
+        GRN_OBJ_FIN(context, &token_filters);
     }
 
     return inspected;
@@ -850,6 +881,68 @@ rb_grn_table_key_support_set_normalizer (VALUE self, VALUE rb_normalizer)
 }
 
 /*
+ * TODO
+ *
+ * @overload token_filters
+ *   @return [nilまたはGroonga::Procedure]
+ */
+static VALUE
+rb_grn_table_key_support_get_token_filters (VALUE self)
+{
+    grn_ctx *context = NULL;
+    grn_obj *table;
+    grn_obj *token_filters = NULL;
+
+    rb_grn_table_key_support_deconstruct(SELF(self), &table, &context,
+                                         NULL, NULL, NULL,
+                                         NULL, NULL, NULL,
+                                         NULL);
+
+    token_filters = grn_obj_get_info(context, table, GRN_INFO_TOKEN_FILTERS,
+                                 NULL);
+    rb_grn_context_check(context, self);
+
+    return GRNOBJECT2RVAL(Qnil, context, token_filters, GRN_FALSE);
+}
+
+/*
+ * TODO
+ */
+static VALUE
+rb_grn_table_key_support_set_token_filters (VALUE self, VALUE rb_token_filters)
+{
+    grn_ctx *context;
+    grn_obj *table;
+    grn_obj token_filters;
+    grn_rc rc;
+    VALUE rb_token_filter_vector = rb_ary_new();
+    const char *name = NULL;
+    unsigned name_size = 0;
+
+    rb_grn_table_key_support_deconstruct(SELF(self), &table, &context,
+                                         NULL, NULL, NULL,
+                                         NULL, NULL, NULL,
+                                         NULL);
+
+    // TODO
+    name = StringValuePtr(rb_token_filters);
+    name_size = RSTRING_LEN(rb_token_filters);
+
+    GRN_PTR_INIT(&token_filters, GRN_OBJ_VECTOR, 0);
+    GRN_PTR_PUT(context,
+                &token_filters,
+                grn_ctx_get(context,
+                            name,
+                            name_size));
+    rc = grn_obj_set_info(context, table, GRN_INFO_TOKEN_FILTERS, &token_filters);
+    rb_grn_context_check(context, self);
+    rb_grn_rc_check(rc, self);
+    grn_obj_unlink(context, &token_filters);
+
+    return Qnil;
+}
+
+/*
  * キーを正規化する場合は +true+ 、正規化しない場合は +false+ を返
  * す。
  *
@@ -980,6 +1073,11 @@ rb_grn_init_table_key_support (VALUE mGrn)
                      rb_grn_table_key_support_get_normalizer, 0);
     rb_define_method(rb_mGrnTableKeySupport, "normalizer=",
                      rb_grn_table_key_support_set_normalizer, 1);
+
+    rb_define_method(rb_mGrnTableKeySupport, "token_filters",
+                     rb_grn_table_key_support_get_token_filters, 0);
+    rb_define_method(rb_mGrnTableKeySupport, "token_filters=",
+                     rb_grn_table_key_support_set_token_filters, 1);
 
     rb_define_method(rb_mGrnTableKeySupport, "normalize_key?",
                      rb_grn_table_key_support_normalize_key_p, 0);

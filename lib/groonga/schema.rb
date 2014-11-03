@@ -1220,13 +1220,24 @@ module Groonga
       end
 
       # @private
-      AVAILABLE_OPTION_KEYS = [:context, :change, :force,
-                               :type, :path, :persistent,
-                               :key_type, :value_type, :sub_records,
-                               :default_tokenizer,
-                               :key_normalize, :key_with_sis,
-                               :named_path,
-                               :normalizer]
+      AVAILABLE_OPTION_KEYS = [
+        :context,
+        :change,
+        :force,
+        :type,
+        :path,
+        :persistent,
+        :key_type,
+        :value_type,
+        :sub_records,
+        :default_tokenizer,
+        :key_normalize,
+        :key_with_sis,
+        :named_path,
+        :normalizer,
+        :token_filters,
+      ]
+
       # @private
       def validate_options(options)
         return if options.nil?
@@ -1270,7 +1281,9 @@ module Groonga
           :key_normalize => @options[:key_normalize],
           :default_tokenizer => normalize_type(@options[:default_tokenizer]),
           :normalizer => normalize_type(@options[:normalizer]),
+          :token_filters => normalize_type(@options[:token_filters]),
         }
+        # TODO: document
 
         if @table_type == Groonga::Array
           common
