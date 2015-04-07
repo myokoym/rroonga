@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (C) 2014  Masafumi Yokoyama <myokoym@gmail.com>
+# Copyright (C) 2014-2015  Masafumi Yokoyama <yokoyama@clear-code.com>
 # Copyright (C) 2009-2012  Kouhei Sutou <kou@clear-code.com>
 #
 # This library is free software; you can redistribute it and/or
@@ -244,6 +244,64 @@ class ExpressionBuilderTest < Test::Unit::TestCase
     def test_query_string
       result = @users.select("name:@ro")
       assert_equal(["morita", "yu"],
+                   result.collect {|record| record.key.key})
+    end
+  end
+
+  class RegexpSearchTest < self
+    def setup_tables
+      Groonga::Schema.define do |schema|
+        schema.create_table("Users",
+                            :type => :hash,
+                            :key_type => "ShortText") do |table|
+          table.short_text("name")
+        end
+
+        schema.create_table("Terms",
+                            :type => :patricia_trie,
+                            :default_tokenizer => "TokenRegexp",
+                            :key_type => "ShortText") do |table|
+          table.index("Users.name")
+        end
+      end
+
+      @users = Groonga["Users"]
+    end
+
+    def setup_data
+      @users.add("morita",      :name => "mori daijiro")
+      @users.add("gunyara-kun", :name => "Tasuku SUENAGA")
+      @users.add("yu",          :name => "Yutaro Shimamura")
+    end
+
+    def test_match
+      result = @users.select do |record|
+        record["name"] =~ /ro/
+      end
+      assert_equal(["morita", "yu"],
+                   result.collect {|record| record.key.key})
+    end
+
+    def test_not_match
+      result = @users.select do |record|
+        record["name"] =~ /abcabcabc/
+      end
+      assert_equal([],
+                   result.collect {|record| record.key.key})
+    end
+
+    def test_query_string
+      result = @users.select("name:~ro")
+      assert_equal(["morita", "yu"],
+                   result.collect {|record| record.key.key})
+    end
+
+    def test_prefix
+      result = @users.select do |record|
+        record["name"] =~ /\Am/
+      end
+      result = @users.select("name:~mo")
+      assert_equal(["morita"],
                    result.collect {|record| record.key.key})
     end
   end
